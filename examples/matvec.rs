@@ -27,9 +27,15 @@ fn main() -> Result<()> {
     let vec_buf = Buffer::<f32>::builder().queue(pro_que.queue().clone()).flags(ocl::flags::MEM_READ_ONLY).len(4).copy_host_slice(&vec).build().unwrap();
     let res_buf = Buffer::<f32>::builder().queue(pro_que.queue().clone()).flags(ocl::flags::MEM_WRITE_ONLY).len(4).build().unwrap();
     let kernel = pro_que.kernel_builder("matvec_mult").arg(&mat_buf).arg(&vec_buf).arg(&res_buf).build().unwrap();
-    unsafe {kernel.cmd().global_work_size(4).local_work_size(4).enq().unwrap();}
-    res_buf.read(&mut result[..]).enq().unwrap();
-
+    for _i in 0..4 {
+        use std::time::Instant;
+        let now = Instant::now();
+        unsafe {kernel.cmd().global_work_size(4).local_work_size(4).enq().unwrap();}
+        let _=pro_que.finish()?;
+        let elapsed = now.elapsed();
+        println!("Elapsed: {:.2?}", elapsed);
+        res_buf.read(&mut result[..]).enq().unwrap();
+    }
     let epsilon = 1e-5;
     let mut success = true;
     for i in 0..4 {
