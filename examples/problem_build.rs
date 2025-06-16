@@ -26,7 +26,6 @@ fn main() -> ocl::Result<()> {
         .platform(platform)
         .devices(dev)
         .build()?;
-        // .expect("Failed to create context");
     let file_names = [PROGRAM_FILE, PROGRAM_FILE_1];
     let mut program_sources = Vec::<String>::new();
     for file_name in &file_names {
@@ -45,7 +44,6 @@ fn main() -> ocl::Result<()> {
     let build_result = ocl::core::build_program(&program_con, Some(&[dev.clone()]), &options_cstring,None,None);
 
     if build_result.is_err() {
-        // Query and print the build log
         let log = match program_con.build_info(dev, ProgramBuildInfo::BuildLog) {
             Ok(ProgramBuildInfoResult::BuildLog(s)) => s,
             _ => "<No build log available>".to_string(),
