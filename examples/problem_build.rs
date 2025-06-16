@@ -22,10 +22,7 @@ fn main() -> ocl::Result<()> {
     }
     let dev = devices.into_iter().next().expect("No devices found");
 
-    let context = Context::builder()
-        .platform(platform)
-        .devices(dev)
-        .build()?;
+    let context = Context::builder().platform(platform).devices(dev).build()?;
     let file_names = [PROGRAM_FILE, PROGRAM_FILE_1];
     let mut program_sources = Vec::<String>::new();
     for file_name in &file_names {
