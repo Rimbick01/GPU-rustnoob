@@ -2,6 +2,8 @@ use ocl::{ enums::{ProgramBuildInfo, ProgramBuildInfoResult}};
 use ocl::builders::ProgramBuilder;
 use ocl::{Context, Device, DeviceType,  Platform};
 use std::fs;
+use std::ffi::CString;
+
 
 
 const PROGRAM_FILE: &str = "good.cl";
@@ -38,14 +40,18 @@ fn main() -> ocl::Result<()> {
         .devices(dev.clone())
         .cmplr_opt(&*OPTIONS)
         .build(&context)
-        .unwrap(); // <-- Now program is a Program, not a Result
+        .unwrap(); 
+    let options_cstring = CString::new(OPTIONS).unwrap();
+    let build_result = ocl::core::build_program(&program_con, Some(&[dev.clone()]), &options_cstring,None,None);
 
-
-    let log = match program_con.build_info(dev, ProgramBuildInfo::BuildLog) {
-        Ok(ProgramBuildInfoResult::BuildLog(s)) => s,
-        _ => "<No build log available>".to_string(),
-    };
-    println!("hi log {}", log);
+    if build_result.is_err() {
+        // Query and print the build log
+        let log = match program_con.build_info(dev, ProgramBuildInfo::BuildLog) {
+            Ok(ProgramBuildInfoResult::BuildLog(s)) => s,
+            _ => "<No build log available>".to_string(),
+        };
+        println!("OpenCL build log:\n{}", log);
+    }
 
     println!("Current directory: {:?}", std::env::current_dir());
     Ok(())
