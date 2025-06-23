@@ -23,11 +23,9 @@ fn main() -> ocl::Result<()> {
         .copy_host_slice(&full_matrix)
         .build()?;
 
-    // Read the whole buffer linearly
     let mut read_back = [0.0f32; 80];
     matrix_buffer.read(&mut read_back[..]).enq()?;
 
-    // Now extract the rectangle in Rust
     let mut zero_matrix = [0.0f32; 80];
     let src_cols = 10;
     let dst_cols = 10;
