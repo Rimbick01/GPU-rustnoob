@@ -23,7 +23,7 @@ fn main() -> ocl::Result<()> {
         .devices(dev.clone())
         .build(&context)?;
 
-    let mut msg = [0u8; 16];
+    let mut msg = vec! [0u8; 16];
     let msg_buffer = Buffer::<u8>::builder().queue(queue.clone()).flags(MemFlags::new().write_only()).len(16).build()?;
         
     let kernel = ocl::Kernel::builder().program(&program_con).name("vector_bytes").queue(queue.clone()).arg(&msg_buffer).build()?;
