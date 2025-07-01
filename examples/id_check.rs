@@ -38,7 +38,7 @@ fn main() -> ocl::Result<()> {
     msg_buffer.read(&mut msg).enq()?;
     for i in 0..global_size[1] {
         for j in 0..global_size[0] {
-            print!("{:6.1}", msg[i * global_size[0] + j]);
+            print!("{:6.2}", msg[i * global_size[0] + j]);
         }
         println!();
     }
