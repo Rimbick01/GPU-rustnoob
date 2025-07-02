@@ -18,39 +18,16 @@ fn main() -> ocl::Result<()> {
     let program_handle = fs::read_to_string("hello_kernel.cl").unwrap_or_else(|_| panic!("Failed to read file: hello_kernel.cl"));
     let queue = Queue::new(&context, (*dev).into(), None)?;
 
-    let program_con = ProgramBuilder::new()
-        .src(&program_handle)
-        .devices(dev.clone())
-        .build(&context)?;
+    let program_con = ProgramBuilder::new() .src(&program_handle).devices(dev.clone()) .build(&context)?;
     let mut s1 = [0.0f32; 8];
     let mut s2 = [0u8; 16];
 
-    let s1_buffer = Buffer::<f32>::builder()
-        .queue(queue.clone())
-        .flags(flags::MEM_WRITE_ONLY)
-        .len(8)
-        .build()?;
-    let s2_buffer = Buffer::<u8>::builder()
-        .queue(queue.clone())
-        .flags(flags::MEM_WRITE_ONLY)
-        .len(16)
-        .build()?;
+    let s1_buffer = Buffer::<f32>::builder() .queue(queue.clone()).flags(flags::MEM_WRITE_ONLY) .len(8) .build()?;
+    let s2_buffer = Buffer::<u8>::builder() .queue(queue.clone()).flags(flags::MEM_WRITE_ONLY) .len(16) .build()?;
 
-    let kernel = ocl::Kernel::builder()
-        .program(&program_con)
-        .name("shuffle_test")
-        .queue(queue.clone())
-        .arg(&s1_buffer)
-        .arg(&s2_buffer)
-        .global_work_size(1)
-        .build()?;
+    let kernel = ocl::Kernel::builder().program(&program_con).name("shuffle_test").queue(queue.clone()).arg(&s1_buffer).arg(&s2_buffer).global_work_size(1).build()?;
 
-    unsafe {
-        kernel.cmd()
-            .queue(&queue)
-            .global_work_size(1)
-            .enq()?;
-    }
+    unsafe {kernel.cmd().queue(&queue) .global_work_size(1) .enq()?; }
     s1_buffer.read(&mut s1[..]).enq()?;
     s2_buffer.read(&mut s2[..]).enq()?;
 
