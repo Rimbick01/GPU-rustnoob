@@ -1,26 +1,19 @@
-use ocl::{builders::ProgramBuilder, core::build_program, enums::{ImageChannelDataType, ImageChannelOrder}, Context, Device, DeviceType, Image, MemFlags, Platform, Queue};
+use ocl::{builders::ProgramBuilder, core::{build_program, MemObjectType}, enums::{ImageChannelDataType, ImageChannelOrder}, Context, Device, DeviceType, Image, MemFlags, Platform, Queue};
 use std::ffi::CString;
-use image::{ GenericImageView, RgbaImage};
+use image::{ GrayImage, Luma};
 
+const SCALE_FACTOR: usize = 10;
 const INPUT_FILE: &str = "input.png";
 const OUTPUT_FILE: &str = "output.png";
 const KERNEL_FILE: &str = "hello_kernel.cl";
 
 fn main() -> ocl::Result<()> {
-    let img = image::open(INPUT_FILE).expect("Failed to open input image");
-    let (src_width, src_height) = img.dimensions();
-    let scale = 2;
-    let dst_width = src_width * scale;
-    let dst_height = src_height * scale;
+    let img = image::open(INPUT_FILE).expect("Failed to open input image").to_luma16();
+    let (width, height) = img.dimensions();
+    let dst_width = width * SCALE_FACTOR as u32;
+    let dst_height = height * SCALE_FACTOR as u32;
 
-    let img_rgba: RgbaImage = img.to_rgba8();
-    let mut src_data = Vec::with_capacity((src_width * src_height * 4) as usize);
-    for p in img_rgba.pixels() {
-        src_data.push(p[0] as f32 / 255.0);
-        src_data.push(p[1] as f32 / 255.0);
-        src_data.push(p[2] as f32 / 255.0);
-        src_data.push(p[3] as f32 / 255.0);
-    }
+    let src_data: Vec<u16> = img.pixels().flat_map(|p| p.0).collect();
 
     let platform = Platform::list().into_iter().next().unwrap();
     let mut devices = Device::list(platform, Some(DeviceType::GPU)).unwrap_or_default();
@@ -37,20 +30,22 @@ fn main() -> ocl::Result<()> {
         .src(&program_handle)
         .devices(dev.clone())
         .build(&context)?;
-    let build_opts = CString::new(format!("-DSCALE={}", scale)).unwrap();
+    let build_opts = CString::new(format!("-DSCALE={}", SCALE_FACTOR)).unwrap();
     build_program::<()>(&program_con, None, &build_opts, None, None)?;
 
-    let src_image = Image::<f32>::builder()
-        .channel_order(ImageChannelOrder::Rgba)
-        .channel_data_type(ImageChannelDataType::Float)
+    let src_image = Image::<u16>::builder()
+        .channel_order(ImageChannelOrder::Luminance)
+        .channel_data_type(ImageChannelDataType::UnormInt16)
+        .image_type(MemObjectType::Image2d)
         .flags(MemFlags::new().read_only() | MemFlags::new().copy_host_ptr())
         .copy_host_slice(&src_data)
-        .dims([src_width, src_height])
+        .dims([width, height])
         .queue(queue.clone())
         .build()?;
-    let dst_image = Image::<f32>::builder()
-        .channel_order(ImageChannelOrder::Rgba)
-        .channel_data_type(ImageChannelDataType::Float)
+    let dst_image = Image::<u16>::builder()
+        .channel_order(ImageChannelOrder::Luminance)
+        .channel_data_type(ImageChannelDataType::UnormInt16)
+        .image_type(MemObjectType::Image2d)
         .flags(MemFlags::new().write_only())
         .dims([dst_width, dst_height])
         .queue(queue.clone())
@@ -62,28 +57,19 @@ fn main() -> ocl::Result<()> {
         .queue(queue.clone())
         .arg(&src_image)
         .arg(&dst_image)
-        .global_work_size([src_width, src_height])
+        .global_work_size([width, height])
         .build()?;
 
-    unsafe {
-        kernel.cmd()
-            .queue(&queue)
-            .global_work_size([src_width, src_height])
-            .enq()?;
-    }
+    unsafe {kernel.cmd().queue(&queue) .global_work_size([width, height]) .enq()?; }
 
-    let mut dst_data = vec![0.0f32; (dst_width * dst_height * 4) as usize];
+    let mut dst_data = vec![0u16; (dst_width * dst_height) as usize];
     dst_image.read(&mut dst_data).enq()?;
 
-    let mut out_img = RgbaImage::new(dst_width, dst_height);
+    let mut out_img = GrayImage::new(dst_width, dst_height);
     for y in 0..dst_height {
         for x in 0..dst_width {
-            let idx = ((y * dst_width + x) * 4) as usize;
-            let r = (dst_data[idx + 0].clamp(0.0, 1.0) * 255.0) as u8;
-            let g = (dst_data[idx + 1].clamp(0.0, 1.0) * 255.0) as u8;
-            let b = (dst_data[idx + 2].clamp(0.0, 1.0) * 255.0) as u8;
-            let a = (dst_data[idx + 3].clamp(0.0, 1.0) * 255.0) as u8;
-            out_img.put_pixel(x, y, image::Rgba([r, g, b, a]));
+            let idx = (y * dst_width + x) as usize;
+            out_img.put_pixel(x, y, Luma([dst_data[idx].try_into().unwrap()]));
         }
     }
     out_img.save(OUTPUT_FILE).expect("Failed to save output image");
