@@ -1,8 +1,6 @@
-// fn main(){}
 use ocl::builders::ProgramBuilder;
 use ocl::{ Context, Device, DeviceType,  Platform, Queue};
 use std::{fs};
-const NUM:usize = 131072;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
 
@@ -24,20 +22,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .src(&program_handle)
         .devices(dev.clone())
         .build(&context)?;
-     let mut buffer = [0i8;NUM*16];
-    let buffer_cl = ocl::Buffer::<i8>::builder()
+    let mut buffer = vec![0.0f32; 4096];
+    let buffer_cl = ocl::Buffer::<f32>::builder()
         .queue(queue.clone())
         .flags(ocl::flags::MEM_WRITE_ONLY)
-        .len(NUM*16)
-        .copy_host_slice(&buffer)
+        .len(4096)
         .build()?;
 
     let kernel = ocl::Kernel::builder()
         .program(&program_con)
-        .name("profile_items")
+        .name("callback")
         .queue(queue.clone())
         .arg(&buffer_cl)
-        .arg(NUM as i32)
         .global_work_size(1)
         .build()?;
 
@@ -50,15 +46,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     buffer_cl.read(&mut buffer[..]).enq()?;
 
-        println!("Output:");
-    for i in 0..NUM {
-        print!("c[{}]: ", i);
-        for j in 0..16 {
-            print!("{:3} ", buffer[i * 16 + j]);
+    let mut check = true;
+    for i in 0..4096 {
+        if buffer[i] != 5.0f32 {
+            check = false;
+            break;
         }
-        println!();
     }
+    if check {
+            println!("The data has been initialized successfully.");
+        } else {
+            println!("The data has not been initialized successfully.");
+        }
 
+    assert!(buffer.iter().all(|&v| v == 5.0));
+    println!("All values are 5.0: OK");
 
     Ok(())
 }

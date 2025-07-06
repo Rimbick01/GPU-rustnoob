@@ -1,4 +1,3 @@
-// fn main(){}
 use ocl::builders::ProgramBuilder;
 use ocl::{ Context, Device, DeviceType,  Platform, Queue};
 use std::{fs};
@@ -34,7 +33,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let kernel = ocl::Kernel::builder()
         .program(&program_con)
-        .name("profile_items")
+        .name("profile_read")
         .queue(queue.clone())
         .arg(&buffer_cl)
         .arg(NUM as i32)

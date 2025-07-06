@@ -1,8 +1,6 @@
-// fn main(){}
 use ocl::builders::ProgramBuilder;
 use ocl::{ Context, Device, DeviceType,  Platform, Queue};
 use std::{fs};
-const NUM:usize = 131072;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
 
@@ -24,20 +22,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .src(&program_handle)
         .devices(dev.clone())
         .build(&context)?;
-     let mut buffer = [0i8;NUM*16];
-    let buffer_cl = ocl::Buffer::<i8>::builder()
+    let mut buffer = [1.0f32,2.0,-3.5,-6.7];
+    let buffer_cl = ocl::Buffer::<f32>::builder()
         .queue(queue.clone())
         .flags(ocl::flags::MEM_WRITE_ONLY)
-        .len(NUM*16)
+        .len(4)
         .copy_host_slice(&buffer)
         .build()?;
 
     let kernel = ocl::Kernel::builder()
         .program(&program_con)
-        .name("profile_items")
+        .name("user_event")
         .queue(queue.clone())
         .arg(&buffer_cl)
-        .arg(NUM as i32)
         .global_work_size(1)
         .build()?;
 
@@ -50,15 +47,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     buffer_cl.read(&mut buffer[..]).enq()?;
 
-        println!("Output:");
-    for i in 0..NUM {
-        print!("c[{}]: ", i);
-        for j in 0..16 {
-            print!("{:3} ", buffer[i * 16 + j]);
-        }
-        println!();
-    }
-
+    println!("Output vector: {:?}", buffer);
 
     Ok(())
 }
