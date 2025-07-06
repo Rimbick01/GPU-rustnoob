@@ -2,7 +2,6 @@
 use ocl::builders::ProgramBuilder;
 use ocl::{ Context, Device, DeviceType,  Platform, Queue};
 use std::{fs};
-const NUM:usize = 131072;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
 
@@ -24,37 +23,47 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .src(&program_handle)
         .devices(dev.clone())
         .build(&context)?;
-     let mut buffer = [0i8;NUM*16];
-    let buffer_cl = ocl::Buffer::<i8>::builder()
-        .queue(queue.clone())
-        .flags(ocl::flags::MEM_WRITE_ONLY)
-        .len(NUM*16)
-        .copy_host_slice(&buffer)
-        .build()?;
+    let num_items = 2;
+    let num_vectors = 4;
+    let num_ints = num_vectors * 4;
+    let mut x = [0i32; 16];
+    // Fill with 0..15 for demonstration
+    for i in 0..16 {
+        x[i] = i as i32;
+    }
+
+    let x_buffer = ocl::Buffer::<i32>::builder()
+    .queue(queue.clone())
+    .flags(ocl::flags::MEM_READ_WRITE | ocl::flags::MEM_COPY_HOST_PTR)
+    .len(num_ints)
+    .copy_host_slice(&x)
+    .build()?;
+
 
     let kernel = ocl::Kernel::builder()
         .program(&program_con)
         .name("profile_items")
         .queue(queue.clone())
-        .arg(&buffer_cl)
-        .arg(NUM as i32)
-        .global_work_size(1)
+        .arg(&x_buffer)
+        .arg(num_ints as i32)
+        .global_work_size(num_items)
         .build()?;
 
     unsafe {
         kernel.cmd()
             .queue(&queue)
-            .global_work_size(1)
+            .global_work_size(num_items)
             .enq()?;
     }
 
-    buffer_cl.read(&mut buffer[..]).enq()?;
+    x_buffer.read(&mut x[..]).enq()?;
 
-        println!("Output:");
-    for i in 0..NUM {
-        print!("c[{}]: ", i);
-        for j in 0..16 {
-            print!("{:3} ", buffer[i * 16 + j]);
+    // Print the output as 4 int4 vectors
+    println!("Output:");
+    for i in 0..num_vectors {
+        print!("x[{}]: ", i);
+        for j in 0..4 {
+            print!("{:4} ", x[i * 4 + j]);
         }
         println!();
     }
