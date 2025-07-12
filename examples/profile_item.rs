@@ -47,12 +47,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .global_work_size(num_items)
         .build()?;
 
-    unsafe {
-        kernel.cmd()
-            .queue(&queue)
-            .global_work_size(num_items)
-            .enq()?;
-    }
+    unsafe {kernel.cmd().queue(&queue).global_work_size(num_items).enq()?;}
 
     x_buffer.read(&mut x[..]).enq()?;
 
@@ -64,7 +59,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         println!();
     }
-
 
     Ok(())
 }
