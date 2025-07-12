@@ -48,14 +48,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     buffer_cl.read(&mut buffer[..]).enq()?;
 
         println!("Output:{} {}",buffer[0],buffer[1]);
-    // for i in 0..NUM {
-    //     print!("c[{}]: ", i);
-    //     for j in 0..16 {
-    //         print!("{:3} ", buffer[i * 16 + j]);
-    //     }
-    //     println!();
-    // }
-
 
     Ok(())
 }
