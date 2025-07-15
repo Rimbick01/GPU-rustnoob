@@ -20,11 +20,9 @@ fn main() -> ocl::Result<()> {
     let program_handle = fs::read_to_string("hello_kernel.cl").unwrap_or_else(|_| panic!("Failed to read file: hello_kernel.cl"));
     let queue = Queue::new(&context, (*dev).into(), None)?;
     let program_con = ProgramBuilder::new().src(&program_handle).devices(dev.clone()).build(&context).unwrap(); 
-    let mut a = [0u8; 1];
-    let mut b = [0u8; 1];
-    let a1 = Buffer::<u8>::builder().queue(queue.clone()).flags(MemFlags::new().write_only()).len(1).copy_host_slice(&a) .build()?;
-    let b2 = Buffer::<u8>::builder().queue(queue.clone()).flags(MemFlags::new().write_only()).len(1).copy_host_slice(&b) .build()?;
-    let kernel = ocl::Kernel::builder().program(&program_con).name("blank").queue(queue.clone()).arg(&a1).arg(&b2).build()?;
+    let a = Buffer::<u8>::builder().queue(queue.clone()).flags(MemFlags::new().write_only()).len(1).build()?;
+    let b = Buffer::<u8>::builder().queue(queue.clone()).flags(MemFlags::new().write_only()).len(1).build()?;
+    let kernel = ocl::Kernel::builder().program(&program_con).name("blank").queue(queue.clone()).arg(&a).arg(&b).build()?;
 
     unsafe {kernel.cmd().queue(&queue).global_work_size(1).enq()?;}
     println!("KERNELS work size: {:?}", dev.max_wg_size().unwrap());
