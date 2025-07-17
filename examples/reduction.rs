@@ -1,4 +1,5 @@
 use ocl::{Platform, Device, Context, Queue, Program, Buffer, flags, DeviceType, builders::KernelBuilder};
+use std::time::Instant;
 
 const ARRAY_SIZE: usize = 65536;
 const NUM_KERNELS: usize = 2;
@@ -40,6 +41,7 @@ fn main() -> ocl::Result<()> {
     let kernel_names = ["reduction_scalar", "reduction_vector"];
 
     for i in 0..NUM_KERNELS {
+        let start = Instant::now();
         let (global_size, local_mem_size, num_groups) = if i == 0 {
             let num_groups = global_size_scalar / local_size;
             (global_size_scalar, local_size, num_groups)
@@ -87,6 +89,10 @@ fn main() -> ocl::Result<()> {
         } else {
             println!("Check passed.");
         }
+        let duration = start.elapsed();
+        
+        println!("Time elapsed: {:.6} seconds", duration.as_secs_f64());
+        println!("Time elapsed: {} µs", duration.as_micros());
     }
 
     Ok(())
