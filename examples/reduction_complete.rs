@@ -92,7 +92,6 @@ fn main() -> ocl::Result<()> {
         .local_work_size(global_size)
         .build()?;
 
-
     unsafe {
         kernel_com.cmd()
             .queue(&queue)
