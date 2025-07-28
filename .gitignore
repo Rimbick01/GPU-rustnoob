@@ -6,3 +6,5 @@ read
 *.cl
 *.png
 /.vscode
+*.txt
+*.lock

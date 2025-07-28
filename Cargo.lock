@@ -1329,6 +1329,7 @@ dependencies = [
  "ocl",
  "plotters",
  "png",
+ "rand",
 ]
 
 [[package]]
