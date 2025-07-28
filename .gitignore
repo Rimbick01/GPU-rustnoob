@@ -7,4 +7,4 @@ read
 *.png
 /.vscode
 *.txt
-*.lock
+Cargo.lock
